@@ -1201,8 +1201,8 @@ C        write(29,*)' PYTHIA EVENT FILE '
      &  pt2_hat, Q2_hat, F2, F1, R, sigma_rad, SigRadCor, EBrems, 
      &  photonflux, b, Phib, Thickness, ThickScl, Ncollt, Ncolli,
      &  Nwound, Nwdch, Nnevap, Npevap, Aremn, NINC, NINCch, d1st, davg,
-    &  pxf, pyf, pzf, Eexc, RAevt, User1, User2, User3,
-    &  NucTheta, NucPhi, NucPsi, nrTracks')
+     &  pxf, pyf, pzf, Eexc, RAevt, User1, User2, User3,
+     &  NucTheta, NucPhi, NucPsi, nrTracks')
         write(29,*)'============================================'
 
 c...similar to the dpmjet track wide title 
