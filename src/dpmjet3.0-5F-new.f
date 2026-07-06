@@ -2586,7 +2586,7 @@ C              Axially-symmetric case: exact critical point calculation
                   IF(0.LE.C2EXT .AND. C2EXT.LE.1) THEN
                      RATEXT  = 1.0D0 + (2.2360680D0*B2G3D -9.0D0*B4G3D 
      &                    -1.5D0*B2G3D*B2G3D/B4G3D)/(24.8143539D0)
-                     WRITE(*,*) 'Ratio(extremum) = ',RATONE
+                     WRITE(*,*) 'Ratio(extremum) = ',RATEXT
                      RATMAX3D = MAX(RATMAX3D,RATEXT)
                   ENDIF
                ENDIF
