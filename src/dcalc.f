@@ -30,8 +30,9 @@ C     Common from nucdens.f in PyQM
       double precision RR,a0,c0
       common/ woodssaxon/ RR,a0,c0
 
-      double precision SCLFAC, DT_DENSIT, x, y, z, r, TINY6
+      DOUBLE PRECISION SCLFAC, DT_DENSIT, x, y, z, r, TINY6
       double precision CANGL2, Y20, Y40, RADFAC
+      double precision CBODYX, CBODYY, EYZX, EYZY, EYZZ, Y22PM
       external SCLFAC, DT_DENSIT
       parameter (TINY6=1.0d-6)
       integer IDUM
@@ -52,7 +53,19 @@ c...target/proj mass, charge and projectile internal ID
          Y20 = 0.31591565D0*(3.0D0*CANGL2-1.0D0)
          Y40 = 0.10578555D0*
      &        (35.0D0*CANGL2*CANGL2-30.0D0*CANGL2+3.0D0)
-         RADFAC=1.0D0+B2G3D*Y20+B4G3D*Y40
+         RADFAC=1.0D0+B2G3D*COS(GAMG3D)*Y20+B4G3D*Y40
+         IF (ABS(GAMG3D).GT.1.0D-9) THEN
+C           (Y22+Y2-2)/sqrt(2) = sqrt(15/16pi)*sin^2(theta)*cos(2phi)
+C           = sqrt(15/16pi) * (cx^2 - cy^2) in body frame
+C           Body y-axis = body-z cross body-x
+            EYZX = YORIENT*XZORIENT - ZORIENT*XYORIENT
+            EYZY = ZORIENT*XXORIENT - XORIENT*XZORIENT
+            EYZZ = XORIENT*XYORIENT - YORIENT*XXORIENT
+            CBODYX = (x*XXORIENT+y*XYORIENT+z*XZORIENT)/r
+            CBODYY = (x*EYZX+y*EYZY+z*EYZZ)/r
+            Y22PM = 0.54627D0*(CBODYX*CBODYX-CBODYY*CBODYY)
+            RADFAC = RADFAC + B2G3D*SIN(GAMG3D)*Y22PM
+         ENDIF
          IF (RADFAC.LE.TINY6) THEN
             WRITE(*,*)'DCALC ERROR: 3D RADIUS < 0:',RADFAC
             RADFAC=TINY6
