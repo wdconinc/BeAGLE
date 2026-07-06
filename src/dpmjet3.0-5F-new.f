@@ -2477,6 +2477,14 @@ C     Note: Userset finalized and documented also in DT_PYOUTEP
          WRITE(*,*) '           USER1 = E* before the fix'
          WRITE(*,*) '           USER2 = E* after the fix'
          WRITE(*,*) '           USER3 = IREJ'
+      ELSEIF (USERSET.EQ.18) THEN
+         WRITE(*,*) 'USERSET 18 selected. Nuclear orient. Euler angles'
+         WRITE(*,*) '  (requires GLAUB-3D with gamma for Y22 term)'
+         WRITE(*,*) '           USER1 = theta (polar angle of z-axis)'
+         WRITE(*,*) '           USER2 = phi (azimut. angle of z-axis)'
+         WRITE(*,*) '           USER3 = psi (angle about z-axis)'
+         WRITE(*,*) '  Note: NucTheta/NucPhi/NucPsi always written in'
+         WRITE(*,*) '  the event header regardless of USERSET.'
       ENDIF
       GOTO 10
 
@@ -2504,9 +2512,14 @@ C     Note: Userset finalized and documented also in DT_PYOUTEP
 *       including 3D Glauber.                                       *
 *                                                                   *
 *       The distribution is ~ [1+w(r/R)^2]/{1 + exp[(r-R)/a]}       *
-*       with R = R0 ( 1 + Beta2 Y20 + Beta4 * Y40)                  *
-*       Y20 = sqrt(5/16pi) (3 cos^2(theta) - 1)                     *
-*       Y40 = 3/[16sqrt(pi)] (35 cos^4(theta)-30 cos^2(theta) + 3)  *
+*       with R = R0 ( 1 + Beta2*cos(gamma)*Y20                      *
+*                      + Beta2*sin(gamma)*(Y22+Y2-2)/sqrt(2)         *
+*                      + Beta4*Y40)                                  *
+*       Y20        = sqrt(5/16pi) (3 cos^2(theta') - 1)             *
+*       (Y22+Y2-2)/sqrt(2) = sqrt(15/16pi) sin^2(theta') cos(2phi') *
+*       Y40        = 3/[16sqrt(pi)] (35 cos^4(theta')-30 cos^2 + 3) *
+*       theta', phi' are angles in the nuclear body frame.           *
+*       gamma is the triaxial deformation angle (D=0: axial).       *
 *                                                                   *
 *       Note: Usually w=0 when Beta2,Beta4 are nonzero.             *
 *       This is not enforced, but a warning is issued if violated.  *
@@ -2519,6 +2532,7 @@ C     Note: Userset finalized and documented also in DT_PYOUTEP
 *       what (5) = Beta4                                            *
 *       what (6) = Orientation. D=0=random (production)             *
 *                       =i (1-3) fixed orientation x_i=1 (debug)    *
+*       what (7) = gamma (triaxial angle in radians, D=0: axial)    *
 *                                                                   *
 *********************************************************************
  626  CONTINUE
@@ -2530,38 +2544,60 @@ C     Note: Userset finalized and documented also in DT_PYOUTEP
          WG3D = WHAT(3)
          B2G3D = WHAT(4)
          B4G3D = WHAT(5)
+         GAMG3D = WHAT(7)
          ITEMP = NINT(WHAT(6))
          USEFX3D = (1.LE.ITEMP .AND. ITEMP.LE.3) 
-         IF (ITEMP.EQ.1) XORIENT = 1.0D0
-         IF (ITEMP.EQ.2) YORIENT = 1.0D0
-         IF (ITEMP.EQ.3) ZORIENT = 1.0D0
+C        Fixed debug orientations: set body z-axis to lab x, y, or z.
+C        Body x-axis is set to the next cyclic axis (right-handed).
+         IF (ITEMP.EQ.1) THEN
+            XORIENT = 1.0D0
+            XYORIENT = 1.0D0
+         ELSEIF (ITEMP.EQ.2) THEN
+            YORIENT = 1.0D0
+            XZORIENT = 1.0D0
+         ELSEIF (ITEMP.EQ.3) THEN
+            ZORIENT = 1.0D0
+            XXORIENT = 1.0D0
+         ENDIF
          WRITE(*,*) 'R = ',RG3D
          WRITE(*,*) 'a = ',AG3D
          WRITE(*,*) 'w = ',WG3D
          WRITE(*,*) 'Beta2 = ',B2G3D
          WRITE(*,*) 'Beta4 = ',B4G3D
+         WRITE(*,*) 'gamma (triaxial angle) = ',GAMG3D
          IF (USEB3D) THEN
-            RATZERO = 1.0D0 - 0.3153916D0*B2G3D + 0.3173566D0*B4G3D
-            RATONE  = 1.0D0 + 0.6307831D0*B2G3D + 0.8462844D0*B4G3D
-            RATMAX3D = MAX(RATZERO,RATONE)
-            WRITE(*,*) 'Ratio(cos(theta)=0) = ',RATZERO
-            WRITE(*,*) 'Ratio(cos(theta)=+/-1) = ',RATONE
+            IF (ABS(GAMG3D).GT.1.0D-9) THEN
+C              Triaxial case: conservative bound on max radius ratio
+C              |Y20| max = 0.63184 (at theta=0)
+C              |(Y22+Y2-2)/sqrt(2)| max = sqrt(15/16pi) = 0.54627 (at theta=pi/2)
+               RATMAX3D = 1.0D0
+     &              + ABS(B2G3D)*(ABS(COS(GAMG3D))*0.63184D0
+     &                           +ABS(SIN(GAMG3D))*0.54627D0)
+     &              + ABS(B4G3D)*0.84628D0
+            ELSE
+C              Axially-symmetric case: exact critical point calculation
+               RATZERO = 1.0D0 - 0.3153916D0*B2G3D + 0.3173566D0*B4G3D
+               RATONE  = 1.0D0 + 0.6307831D0*B2G3D + 0.8462844D0*B4G3D
+               RATMAX3D = MAX(RATZERO,RATONE)
+               WRITE(*,*) 'Ratio(cos(theta)=0) = ',RATZERO
+               WRITE(*,*) 'Ratio(cos(theta)=+/-1) = ',RATONE
+               IF (ABS(B4G3D).GT.1.0D-9) THEN
+                  C2EXT = (3.0D0-0.8944272D0*B2G3D/B4G3D)/7.0D0
+                  IF(0.LE.C2EXT .AND. C2EXT.LE.1) THEN
+                     RATEXT  = 1.0D0 + (2.2360680D0*B2G3D -9.0D0*B4G3D 
+     &                    -1.5D0*B2G3D*B2G3D/B4G3D)/(24.8143539D0)
+                     WRITE(*,*) 'Ratio(extremum) = ',RATEXT
+                     RATMAX3D = MAX(RATMAX3D,RATEXT)
+                  ENDIF
+               ENDIF
+            ENDIF
             IF (ABS(WG3D).GT.1.0D-9)
      &           WRITE(*,*) 'WARNING: NON-ZERO W AND NON-ZERO BETA'
-C           Ratio of volumes: sphere(R)/3Dshape(R,beta2,beta4) 
+C           Ratio of volumes: sphere(R)/3Dshape(R,beta2,beta4,gamma) 
 C           Terms of O(beta^3) are dropped. Negligible for realistic beta
 C           0.23873241 is 3/4pi
             DENSFAC = 1.0D0/
      &           (1.0D0+0.23873241D0*(B2G3D*B2G3D+B4G3D*B4G3D))
-            IF (ABS(B4G3D).GT.1.0D-9) THEN
-               C2EXT = (3.0D0-0.8944272D0*B2G3D/B4G3D)/7.0D0
-               IF(0.LE.C2EXT .AND. C2EXT.LE.1) THEN
-                  RATEXT  = 1.0D0 + (2.2360680D0*B2G3D -9.0D0*B4G3D 
-     &                 -1.5D0*B2G3D*B2G3D/B4G3D)/(24.8143539D0)
-                  WRITE(*,*) 'Ratio(extremum) = ',RATONE
-                  RATMAX3D = MAX(RATMAX3D,RATEXT)
-               ENDIF
-            ENDIF
          ELSE
             RATMAX3D=1.0D0
          ENDIF
@@ -3184,7 +3220,10 @@ C     COMMON /PQCTRL/ PQRECF, PYQ_SUPF, PYQ_IPTF, PYQ_IEG
 
 * common /BEAEVT/
       USERSET=0
-      EEXCMAX=9.0D0     
+      EEXCMAX=9.0D0
+      NUCTHETA=0.0D0
+      NUCPHI=0.0D0
+      NUCPSI=0.0D0
 
 * common /PQCTRL/ in bea_pyqm.inc 
       PQRECF = ZERO
@@ -6985,11 +7024,42 @@ C     From nucdens.f in PyQM
                XORIENT = ST*CFE
                YORIENT = ST*SFE
                ZORIENT = CT
+C              For triaxial deformation (gamma != 0): generate random psi
+C              rotation about the body z-axis to define the body x-axis.
+C              e_theta = (CT*CFE, CT*SFE, -ST), e_phi = (-SFE, CFE, 0)
+C              Body x = cos(psi)*e_theta - sin(psi)*e_phi
+               IF (ABS(GAMG3D).GT.1.0D-9) THEN
+                  PSI = TWOPI*DT_RNDM(F)
+                  CPSI = COS(PSI)
+                  SPSI = SIN(PSI)
+                  XXORIENT = CPSI*CT*CFE + SPSI*SFE
+                  XYORIENT = CPSI*CT*SFE - SPSI*CFE
+                  XZORIENT = -CPSI*ST
+                  NUCPSI   = PSI
+               ELSE
+                  NUCPSI   = 0.0D0
+               ENDIF
+            ELSE
+C              Fixed debug orientation: recover psi from the stored body axes.
+               IF (ABS(GAMG3D).GT.1.0D-9) THEN
+C                 ATAN2 arguments proportional to sin(psi) and cos(psi)*ST^2
+                  NUCPSI = ATAN2(-XXORIENT*YORIENT + XYORIENT*XORIENT,
+     &                 XXORIENT*XORIENT + XYORIENT*YORIENT)
+               ELSE
+                  NUCPSI = 0.0D0
+               ENDIF
             ENDIF
+C           Store polar and azimuthal angles of body z-axis in BEAEVT.
+            NUCTHETA = ACOS(ZORIENT)
+            NUCPHI   = ATAN2(YORIENT, XORIENT)
             IF (USERSET.EQ.4) THEN
                USER1 = XORIENT
                USER2 = YORIENT
                USER3 = ZORIENT
+            ELSEIF (USERSET.EQ.18) THEN
+               USER1 = NUCTHETA
+               USER2 = NUCPHI
+               USER3 = NUCPSI
             ENDIF
             RMAX = RG3D*RATMAX3D + 4.605D0*AG3D
          ELSE
@@ -7020,7 +7090,19 @@ C     From nucdens.f in PyQM
                Y20 = 0.31591565D0*(3.0D0*CANGL2-1.0D0)
                Y40 = 0.10578555D0*
      &              (35.0D0*CANGL2*CANGL2-30.0D0*CANGL2+3.0D0)
-               RADFAC=1.0D0+B2G3D*Y20+B4G3D*Y40
+               RADFAC=1.0D0+B2G3D*COS(GAMG3D)*Y20+B4G3D*Y40
+               IF (ABS(GAMG3D).GT.1.0D-9) THEN
+C                 (Y22+Y2-2)/sqrt(2) = sqrt(15/16pi)*sin^2(theta)*cos(2phi)
+C                 = sqrt(15/16pi) * (cx^2 - cy^2) in body frame
+C                 Body y-axis = body-z cross body-x
+                  EYZX = YORIENT*XZORIENT - ZORIENT*XYORIENT
+                  EYZY = ZORIENT*XXORIENT - XORIENT*XZORIENT
+                  EYZZ = XORIENT*XYORIENT - YORIENT*XXORIENT
+                  CBODYX = X(1,I)*XXORIENT+X(2,I)*XYORIENT+X(3,I)*XZORIENT
+                  CBODYY = X(1,I)*EYZX+X(2,I)*EYZY+X(3,I)*EYZZ
+                  Y22PM = 0.54627D0*(CBODYX*CBODYX-CBODYY*CBODYY)
+                  RADFAC = RADFAC + B2G3D*SIN(GAMG3D)*Y22PM
+               ENDIF
                IF (RADFAC.LE.1.0D-6) THEN
                   WRITE(*,*)'DT_COORDI ERROR: 3D RADIUS < 0:',RADFAC
                   RADFAC=1.0D-6
@@ -23135,11 +23217,15 @@ C      END
       DATA WG3D  / 0.0D0 /
       DATA B2G3D / 0.0D0 /
       DATA B4G3D / 0.0D0 /
+      DATA GAMG3D  / 0.0D0 /
       DATA DENSFAC  / 1.0D0 /
       DATA RATMAX3D / 1.0D0 /
       DATA XORIENT  / 0.0D0 /
       DATA YORIENT  / 0.0D0 /
       DATA ZORIENT  / 0.0D0 /
+      DATA XXORIENT / 0.0D0 /
+      DATA XYORIENT / 0.0D0 /
+      DATA XZORIENT / 0.0D0 /
       DATA USER3D   / .FALSE. /
       DATA USEB3D   / .FALSE./
       DATA USEFX3D  / .FALSE./

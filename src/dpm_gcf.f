@@ -470,6 +470,9 @@ C      PosAlt(J,KK)=0.0D0
       THKSCL = 0.0D0
       DAVG = 0.0D0
       DFIRST = 0.0D0
+      NUCTHETA = 0.0D0
+      NUCPHI   = 0.0D0
+      NUCPSI   = 0.0D0
 
 c      write(*,*) 'DPMJET position',PosNuc(1),PosNuc(2),PosNuc(3)
       PYQREC(1)=0.0D0
@@ -1198,7 +1201,8 @@ C        write(29,*)' PYTHIA EVENT FILE '
      &  pt2_hat, Q2_hat, F2, F1, R, sigma_rad, SigRadCor, EBrems, 
      &  photonflux, b, Phib, Thickness, ThickScl, Ncollt, Ncolli,
      &  Nwound, Nwdch, Nnevap, Npevap, Aremn, NINC, NINCch, d1st, davg,
-     &  pxf, pyf, pzf, Eexc, RAevt, User1, User2, User3, nrTracks')
+     &  pxf, pyf, pzf, Eexc, RAevt, User1, User2, User3,
+     &  NucTheta, NucPhi, NucPsi, nrTracks')
         write(29,*)'============================================'
 
 c...similar to the dpmjet track wide title 
@@ -1414,14 +1418,18 @@ C      Leave 0 the "hat" variables and the "radcorr" variables
      &        0.0D0, BBEA, PHIB, THKB, THKSCL, NCOLLT, NCOLLI,
      &        NWND, NWDCH,
      &        NNEVAP, NPEVAP, AREMN, NINC, NINCCH, DFIRST, DAVG,
-     &        PXF, PYF, PZF, EEXC(2), RAEVT, USER1, USER2, USER3, 
-     &        nrtrack+4 
+     &        PXF, PYF, PZF, EEXC(2), RAEVT, USER1, USER2, USER3,
+     &        NUCTHETA, NUCPHI, NUCPSI, nrtrack+4 
 C Note: Use E rather than F format for GCF RAEVT (weight)
+C NucTheta, NucPhi, NucPsi are Euler angles of nuclear body frame:
+C   NucTheta = polar angle of body z-axis (symmetry/deformation axis)
+C   NucPhi   = azimuthal angle of body z-axis
+C   NucPsi   = rotation angle about body z-axis (nonzero only for gamma!=0)
  33   format((I4,1x,$),(I10,1x,$),4(I4,1x,$),4(f12.6,1x,$),3(I4,1x,$),
      &     I6,1x,$,f9.6,1x,$,I6,1x,$,2(f12.6,1x,$),7(f18.11,3x,$),
      &     7(f19.9,3x,$),(e17.8,1x,$),3(f19.9,3x,$),4(f10.6,1x,$),
      &     9(I5,1x,$),2(f10.6,1x,$),
-     &     3(f15.6,1x,$),f12.6,1x,$,4(e17.8,1x,$),I6,/)
+     &     3(f15.6,1x,$),f12.6,1x,$,4(e17.8,1x,$),3(f12.6,1x,$),I6,/)
       write(29,*)'============================================'
 
 ***************standard output for particle info************************
