@@ -2478,12 +2478,12 @@ C     Note: Userset finalized and documented also in DT_PYOUTEP
          WRITE(*,*) '           USER2 = E* after the fix'
          WRITE(*,*) '           USER3 = IREJ'
       ELSEIF (USERSET.EQ.18) THEN
-         WRITE(*,*) 'USERSET 18 selected. Nuclear orientation Euler angles'
-         WRITE(*,*) '  (requires GLAUB-3D with non-zero gamma for Y22 term)'
-         WRITE(*,*) '           USER1 = theta (polar angle of body z-axis)'
-         WRITE(*,*) '           USER2 = phi (azimuthal angle of body z-axis)'
-         WRITE(*,*) '           USER3 = psi (rotation angle about body z-axis)'
-         WRITE(*,*) '  Note: NucTheta/NucPhi/NucPsi are always written in'
+         WRITE(*,*) 'USERSET 18 selected. Nuclear orient. Euler angles'
+         WRITE(*,*) '  (requires GLAUB-3D with gamma for Y22 term)'
+         WRITE(*,*) '           USER1 = theta (polar angle of z-axis)'
+         WRITE(*,*) '           USER2 = phi (azimut. angle of z-axis)'
+         WRITE(*,*) '           USER3 = psi (angle about z-axis)'
+         WRITE(*,*) '  Note: NucTheta/NucPhi/NucPsi always written in'
          WRITE(*,*) '  the event header regardless of USERSET.'
       ENDIF
       GOTO 10
