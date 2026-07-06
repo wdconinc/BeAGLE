@@ -2481,8 +2481,8 @@ C     Note: Userset finalized and documented also in DT_PYOUTEP
          WRITE(*,*) 'USERSET 18 selected. Nuclear orientation Euler angles'
          WRITE(*,*) '  (requires GLAUB-3D with non-zero gamma for Y22 term)'
          WRITE(*,*) '           USER1 = theta (polar angle of body z-axis)'
-         WRITE(*,*) '           USER2 = phi   (azimuthal angle of body z-axis)'
-         WRITE(*,*) '           USER3 = psi   (rotation angle about body z-axis)'
+         WRITE(*,*) '           USER2 = phi (azimuthal angle of body z-axis)'
+         WRITE(*,*) '           USER3 = psi (rotation angle about body z-axis)'
          WRITE(*,*) '  Note: NucTheta/NucPhi/NucPsi are always written in'
          WRITE(*,*) '  the event header regardless of USERSET.'
       ENDIF
